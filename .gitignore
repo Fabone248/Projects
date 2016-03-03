@@ -219,6 +219,8 @@ pip-log.txt
 ## Unity
 #############
 
+/Unity/*/[Tt]emp/
+/Unity/*/[Ll]ibrary/
 /[Ll]ibrary/
 /[Tt]emp/
 /[Oo]bj/
