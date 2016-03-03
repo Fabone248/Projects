@@ -6,13 +6,15 @@ public class Cell
 {
     public List<Line> edges;
     public List<Cell> neighbors;
-    public Vector3 germ;
+    public Vector3 seed;
+    public List<Vector3> pointsToRemove;
 
-    public Cell(Vector3 _germ)
+    public Cell(Vector3 _seed)
     {
-        germ = _germ;
+        seed = _seed;
         edges = new List<Line>();
         neighbors = new List<Cell>();
+        pointsToRemove = new List<Vector3>();
     }
 
     public bool IsPointInCell(Vector3 point)
@@ -200,6 +202,17 @@ public class Cell
 
     }
 
+    public int HasEdge(Line other, bool perfectMatch)
+    {
+    	for (int i = 0; i < edges.Count; ++i)
+    	{
+    		if (edges[i].EqualsOtherLine(other, perfectMatch))
+    			return i;
+    	}
+
+    	return -1;
+    }
+
     public bool IsStillNeighborWithCell(Cell other)
     { 
         for (int i = 0; i < edges.Count; ++i)
@@ -282,6 +295,9 @@ public class Line
 
     public bool IsPointOnLine (Vector3 other)
     {
+    	if (pointAEquals(other) || pointBEquals(other))
+    		return true;
+
         Vector3 directionATest = other - pointA;
         
         if (Vector3.Cross(vector, directionATest) == Vector3.zero)
@@ -363,9 +379,13 @@ public class Line
         // The intersection point is on the segment if 0 < k < 1 and 0 < m < 1
         if (((k >= 0 && k <= 1) && (m >= 0 && m <= 1) && testAsSegments) || !testAsSegments)
         {
-            float x = pointA.x + vector.x * k;
-            float y = pointA.y + vector.y * k;
-            float z = pointA.z + vector.z * k;
+			float x = (float)System.Math.Round((decimal)(pointA.x + vector.x * k), 10);
+			float y = (float)System.Math.Round((decimal)(pointA.y + vector.y * k), 10);
+			float z = (float)System.Math.Round((decimal)(pointA.z + vector.z * k), 10);
+
+			//float x = pointA.x + vector.x * k;
+			//float y = pointA.y + vector.y * k;
+			//float z = pointA.z + vector.z * k;
 
             return new Vector3(x, y, z);
         }
@@ -412,16 +432,6 @@ public class Voronoi2DScript : MonoBehaviour {
 	// Use this for initialization
 	void Start ()
     {
-        float f = 3.13288451f;
-        Debug.Log(f);
-        Debug.Log(System.Math.Round((decimal)f, 2));
-        Debug.Log(System.Math.Round((decimal)f, 3));
-        Debug.Log(System.Math.Round((decimal)f, 4));
-        Debug.Log(System.Math.Round((decimal)f, 5));
-        Debug.Log(System.Math.Round((decimal)f, 6));
-
-
-
         listOfCells = new List<Cell>();
         boundaries = new Boundaries();
 
@@ -436,17 +446,18 @@ public class Voronoi2DScript : MonoBehaviour {
         boundaries.topLeft = new Vector3(boundaries.bottomLeft.x, 0f, boundaries.topRight.z);
         boundaries.bottomRight = new Vector3(boundaries.topRight.x, 0f, boundaries.bottomLeft.z);
         Debug.Log(boundaries.topRight);
+
         /*
         Line topLine = new Line(boundaries.topLeft, boundaries.topRight);
         Line rightLine = new Line(boundaries.topRight, boundaries.bottomRight);
         Line bottomLine = new Line(boundaries.bottomLeft, boundaries.bottomRight);
         Line leftLine = new Line(boundaries.topLeft, boundaries.bottomLeft);
 
-        //topLine.pointB = new Vector3(4.0f, 0.0f, 5.0f);
-        //rightLine.pointA = new Vector3(5.0f, 0.0f, 3.0f);
+        topLine.pointB = new Vector3(4.0f, 0.0f, 5.0f);
+        rightLine.pointA = new Vector3(5.0f, 0.0f, 3.0f);
 
-        //Line extra1 = new Line(new Vector3(4.0f, 0.0f, 5.0f), new Vector3(6.0f, 0.0f, 7.0f));
-        //Line extra2 = new Line(new Vector3(6.0f, 0.0f, 7.0f), new Vector3(5.0f, 0.0f, 3.0f));
+        Line extra1 = new Line(new Vector3(4.0f, 0.0f, 5.0f), new Vector3(6.0f, 0.0f, 7.0f));
+        Line extra2 = new Line(new Vector3(6.0f, 0.0f, 7.0f), new Vector3(5.0f, 0.0f, 3.0f));
 
         Cell cell = new Cell(new Vector3(0f, 0f, 0f));
         cell.edges.Add(topLine);
@@ -454,31 +465,42 @@ public class Voronoi2DScript : MonoBehaviour {
         cell.edges.Add(leftLine);
         cell.edges.Add(bottomLine);
 
-        //cell.edges.Add(extra1);
-        //cell.edges.Add(extra2);
+        cell.edges.Add(extra1);
+        cell.edges.Add(extra2);
 
         listOfCells.Add(cell);
 
-        AddNewGerm(new Vector3(1.5f, 0.0f, 2f));
-        //AddNewGerm(new Vector3(1.5f, 0.0f, 0.5f));
-        AddNewGerm(new Vector3(1f, 0.0f, -2f));
-        AddNewGerm(new Vector3(-4f, 0.0f, -1f));
-        AddNewGerm(new Vector3(4f, 0.0f, -4f));
-        AddNewGerm(new Vector3(3f, 0.0f, 4f));
-        AddNewGerm(new Vector3(-4f, 0.0f, 3f));
-        AddNewGerm(new Vector3(-2f, 0.0f, 1f));
-        AddNewGerm(new Vector3(5f, 0.0f, 5f));
-        AddNewGerm(new Vector3(3f, 0.0f, 1f));
-        /* 
-         * 
-        
-        
-        AddNewGerm(new Vector3(-2.5f, 0.0f, -1.5f));
-        AddNewGerm(new Vector3(-3f, 0.0f, -4f));
-        AddNewGerm(new Vector3(-4.3f, 0.0f, -1f));
-        AddNewGerm(new Vector3(-1f, 0.0f, -4.3f));
-        AddNewGerm(new Vector3(-3.5f, 0.0f, -3.5f));
-        AddNewGerm(new Vector3(-3.5f, 0.0f, 3.5f));
+        AddNewSeed(new Vector3(1.5f, 0.0f, 2f));
+        //AddNewSeed(new Vector3(1.5f, 0.0f, 0.5f));
+        AddNewSeed(new Vector3(1f, 0.0f, -2f));
+		
+		AddNewSeed(new Vector3(-4f, 0.0f, -1f));
+		 
+        AddNewSeed(new Vector3(4f, 0.0f, -4f));
+		
+        AddNewSeed(new Vector3(3f, 0.0f, 4f));
+
+		     
+		AddNewSeed(new Vector3(-4f, 0.0f, 3f));
+
+        AddNewSeed(new Vector3(-2f, 0.0f, 1f));
+		
+		    
+		AddNewSeed(new Vector3(5f, 0.0f, 5f));
+		 
+        AddNewSeed(new Vector3(3f, 0.0f, 1f));
+         
+		 
+
+        AddNewSeed(new Vector3(-2.5f, 0.0f, -1.5f));
+        AddNewSeed(new Vector3(-3f, 0.0f, -4f));
+        AddNewSeed(new Vector3(-4.3f, 0.0f, -1f));
+		
+        AddNewSeed(new Vector3(-1f, 0.0f, -4.3f));
+        AddNewSeed(new Vector3(-3.5f, 0.0f, -3.5f));
+
+		
+        AddNewSeed(new Vector3(-3.5f, 0.0f, 3.5f));
 
         //Line test = new Line(new Vector3(-4.6f, 0f, 5f), new Vector3(5f, 0f, -2.2f));
         //Line test2 = new Line(new Vector3(1f, 0f, -2f), new Vector3(10001f, 0f, -2f));
@@ -487,22 +509,22 @@ public class Voronoi2DScript : MonoBehaviour {
         Line test = new Line(new Vector3(0f, 0f, 2f), new Vector3(1f, 0f, 0f));
         Line test2 = new Line(new Vector3(1f, 0f, 0f), new Vector3(1f, 0f, -2f));
         Debug.Log(test.IsAlignedWithLine(test2));
-         * */
+        */
         
-        StartCoroutine("AddSomeGerms");
+        StartCoroutine("AddSomeSeeds");
 
         Debug.Log("ok");
 	}
 
-    void AddNewGerm(Vector3 newGerm)
+    void AddNewSeed(Vector3 newSeed)
     {
         if (listOfCells.Count != 0)
         {
             for (int i = 0; i < listOfCells.Count; ++i)
             {
-                if (listOfCells[i].IsPointInCell(newGerm))
+                if (listOfCells[i].IsPointInCell(newSeed))
                 {
-                    SplitMainCell(listOfCells[i], newGerm);
+                    SplitMainCell(listOfCells[i], newSeed);
                     return;
                 }
             }
@@ -510,12 +532,22 @@ public class Voronoi2DScript : MonoBehaviour {
         else
         {
             // Create the new cell
-            Cell newCell = new Cell(newGerm);
+            Cell newCell = new Cell(newSeed);
 
             newCell.edges = GetOutLines();
 
             listOfCells.Add(newCell);
         }
+    }
+
+	public bool ArePointsTheSame(Vector3 pointA, Vector3 pointB, int precision = 3)
+    {
+        if (System.Math.Round((decimal)pointA.x, precision) == System.Math.Round((decimal)pointB.x, precision) &&
+            System.Math.Round((decimal)pointA.y, precision) == System.Math.Round((decimal)pointB.y, precision) &&
+            System.Math.Round((decimal)pointA.z, precision) == System.Math.Round((decimal)pointB.z, precision))
+            return true;
+
+        return false;
     }
 
     List<Line> GetOutLines()
@@ -535,20 +567,21 @@ public class Voronoi2DScript : MonoBehaviour {
         return listOfLines;
     }
 
-    void SplitMainCell(Cell cell, Vector3 newGerm)
+    void SplitCell (Cell mainCell, Cell newCell)
     {
-        // Create the new cell
-        Cell newCell = new Cell(newGerm);
-
-        // Get the line between the germs
-        Line germsLine = new Line(cell.germ, newGerm);
-
-        // Create the perpendicular line on the line between the germs
-        Vector3 perpendicularVector = germsLine.Get2DPerpendicularVector();
-        Vector3 startingPerpendicularPoint = germsLine.GetMiddle();
+		// Get the line between the seeds
+        Line seedsLine = new Line(mainCell.seed, newCell.seed);
+        
+        // Create the perpendicular line on the line between the seeds
+        Vector3 perpendicularVector = seedsLine.Get2DPerpendicularVector();
+        Vector3 startingPerpendicularPoint = seedsLine.GetMiddle();
         Vector3 endingPerpendicularPoint = perpendicularVector * 2 + startingPerpendicularPoint;
 
         Line perpendicularLine = new Line(startingPerpendicularPoint, endingPerpendicularPoint);
+
+        /****************************************************************/
+        /*	Get the perpendicular line of the line between the 2 seeds	*/
+        /****************************************************************/
 
         // Create the lists which will be used to hold the edges from the main cell cut by the perpendicular line
         // And the intersection points
@@ -556,119 +589,260 @@ public class Voronoi2DScript : MonoBehaviour {
         List<Vector3> intersectionPointsList = new List<Vector3>();
 
         // Go through all the edges of the cell to find out which ones are being cut by the perpendicular line
-        for (int i = 0; i < cell.edges.Count; ++i)
+        for (int i = 0; i < mainCell.edges.Count; ++i)
         {
             // Check the lines are crossing
-            if (cell.edges[i].IsCrossingOtherLine(perpendicularLine))
+            if (mainCell.edges[i].IsCrossingOtherLine(perpendicularLine))
             {
-                Vector3 intersectionPoint = cell.edges[i].GetIntersectionPointWithOtherLine(perpendicularLine, false);
+                Vector3 intersectionPoint = mainCell.edges[i].GetIntersectionPointWithOtherLine(perpendicularLine, false);
 
                 // Check the intersection point is on the segment (so the cut is actually inbetween the boundaries of the segment, not just the line)
-                if (cell.edges[i].IsPointOnSegment(intersectionPoint))
+                if (mainCell.edges[i].IsPointOnSegment(intersectionPoint))
                 {
                     // Save the edge cut by the perpendicular line
-                    cuttingLinesList.Add(cell.edges[i]);
+                    cuttingLinesList.Add(mainCell.edges[i]);
                     // Save the intersection point
                     intersectionPointsList.Add(intersectionPoint);
+
                 }
-                
+
             }
         }
+
+		
+
+        // If the perpendicular line cuts some lines at their ends
+        // the farthest lines from the new cell's seed will be deleted
+		for (int i = 0; i < intersectionPointsList.Count; ++i)
+        {
+        	for (int j = i + 1; j < intersectionPointsList.Count; ++j)
+        	{
+        		if (ArePointsTheSame(intersectionPointsList[i], intersectionPointsList[j]))
+        		{
+        			Vector3 point1 = Vector3.zero;
+        			Vector3 point2 = Vector3.zero;
+
+        			if (cuttingLinesList[i].pointA.Equals(intersectionPointsList[i]))
+        				point1 = cuttingLinesList[i].pointB;
+					else if (cuttingLinesList[i].pointB.Equals(intersectionPointsList[i]))
+        				point1 = cuttingLinesList[i].pointA;
+
+					if (cuttingLinesList[j].pointA.Equals(intersectionPointsList[j]))
+        				point2 = cuttingLinesList[j].pointB;
+					else if (cuttingLinesList[j].pointB.Equals(intersectionPointsList[j]))
+        				point2 = cuttingLinesList[j].pointA;
+
+					if (Vector3.Distance(point1, newCell.seed) < Vector3.Distance(point2, newCell.seed))
+					{
+						intersectionPointsList.Remove(intersectionPointsList[j]);
+        				cuttingLinesList.Remove(cuttingLinesList[j]);
+
+        				break;
+					}
+					else
+					{
+						intersectionPointsList.Remove(intersectionPointsList[i]);
+        				cuttingLinesList.Remove(cuttingLinesList[i]);
+        				--i;
+        				break;
+					}
+        		}
+
+        	}
+        }
+
+		if (intersectionPointsList.Count < 2)
+            return; 
 
         // The perpendicular line is now defined by the intersection points
         perpendicularLine.EditPointA(intersectionPointsList[0]);
         perpendicularLine.EditPointB(intersectionPointsList[1]);
 
-        // The perpendicular line is now one of the edges of the main and new cell
-        cell.edges.Add(perpendicularLine);
+		// The perpendicular line is now one of the edges of the main and new cell
+        mainCell.edges.Add(perpendicularLine);
         newCell.edges.Add(perpendicularLine);
 
-        // Create a list that will hold the points of the edges to remove
-        // A-------\-----B
-        //  |       \   |
-        //  |        \  |
-        // If A will still be part of the main cell, B will be saved because it might be linked to some other edges to remove
+		/*************************************************/
+        /*	Get the lines cut by the perpendicular line	 */
+        /*************************************************/
 
-        List<Vector3> existingCellPointsLinkedToLinesToRemove = new List<Vector3>();
-
-        // Go through the edges cut by the perpendicular line to split them into 2 and add them to the proper cell
+        // Go through the edges cut by the perpendicular line to split them into 2 and add them to the appropriate cell (main or new)
         for (int i = 0; i < cuttingLinesList.Count; ++i)
         {
-            // If the pointA from the edge being cut is closer the main cell's germ than the new cell, then it means
+            // If the pointA from the edge being cut is closer to the main cell's seed than the new cell, then it means
             // that the line between pointA and the intersection point should be part of the main cell
-            if (Vector3.Distance(cuttingLinesList[i].pointA, cell.germ) < Vector3.Distance(cuttingLinesList[i].pointA, newCell.germ))
+            if (Vector3.Distance(cuttingLinesList[i].pointA, mainCell.seed) < Vector3.Distance(cuttingLinesList[i].pointA, newCell.seed))
             {
-                // Add the new line to the main cell
-                if (!cuttingLinesList[i].pointAEquals(intersectionPointsList[i]))
-                {
-                    Line newLineForExistingCell = new Line(cuttingLinesList[i].pointA, intersectionPointsList[i]);
-                    cell.edges.Add(newLineForExistingCell);
-                }
+				Line newLineForMainCell = new Line(cuttingLinesList[i].pointA, intersectionPointsList[i]);
+				bool isLinePartOfNeighbors = false;
 
-                // Add pointB as a point potentially linked to some other edges to remove
-                existingCellPointsLinkedToLinesToRemove.Add(cuttingLinesList[i].pointB);
-
-                // Add the rest of the line the new cell
-                if (!cuttingLinesList[i].pointBEquals(intersectionPointsList[i]))
+                // Check the new line is actually not just one point (if both ends are the same) and that the main cell doesnt already have this line
+				if (!cuttingLinesList[i].pointAEquals(intersectionPointsList[i]) && mainCell.HasEdge(newLineForMainCell, false) == -1)
                 {
-                    Line newLineForNewCell = new Line(cuttingLinesList[i].pointB, intersectionPointsList[i]);
-                    newCell.edges.Add(newLineForNewCell);
-                }
+					// Add the new line to the main cell
+					mainCell.edges.Add(newLineForMainCell);
+
+					// Remove the current edge from the neighbor cell
+            		mainCell.edges.Remove(cuttingLinesList[i]);
+
+					// Add pointB as a point potentially linked to some other edges to remove
+                	mainCell.pointsToRemove.Add(cuttingLinesList[i].pointB);
+
+					// Check the edge being cut doesnt belong to one of the main cell's neighbors
+					// If it does, this edge will be removed from the neighbor cell and the new line will also be added to it.
+					for (int j = 0; j < mainCell.neighbors.Count; ++j)
+					{
+						for (int k = 0; k < mainCell.neighbors [j].edges.Count; ++k)
+						{
+							// Check the neighbor cell has the line being cut and that it doesn't already have the new line
+							if (mainCell.neighbors[j].edges[k].EqualsOtherLine(cuttingLinesList[i],false) && !mainCell.neighbors[j].edges[k].EqualsOtherLine(newLineForMainCell, false))
+							{
+								isLinePartOfNeighbors = true;
+
+								// Remove the edge being cut and add the new line
+								mainCell.neighbors[j].edges.Remove(mainCell.neighbors[j].edges[k]);
+								mainCell.neighbors[j].edges.Add(newLineForMainCell);
+
+								// As the nieghbor cell is getting one line removed, it also gets one point to be removed
+								if (!mainCell.neighbors[j].pointsToRemove.Contains(cuttingLinesList[i].pointB))
+									mainCell.neighbors[j].pointsToRemove.Add(cuttingLinesList[i].pointB);
+								 
+								break;
+							}
+						}
+
+						if (isLinePartOfNeighbors)
+							break;
+					}
+
+					// Add the rest of the line being cut to the new cell (if the line is not reduced to one point)
+	                // and if the line being cut is not part of any of the neighbors
+					if (!cuttingLinesList[i].pointBEquals(intersectionPointsList[i]) && !isLinePartOfNeighbors)
+					{
+						Line newLineForNewCell = new Line(cuttingLinesList[i].pointB, intersectionPointsList[i]);
+						newCell.edges.Add (newLineForNewCell);
+					}             
+				}
+
+
+                
 
             }
             else
             {
-                if (!cuttingLinesList[i].pointBEquals(intersectionPointsList[i]))
+				Line newLineForExistingCell = new Line(cuttingLinesList[i].pointB, intersectionPointsList[i]);
+				bool isLinePartOfNeighbors = false;
+
+				if (!cuttingLinesList[i].pointBEquals(intersectionPointsList[i]) && mainCell.HasEdge(newLineForExistingCell, false) == -1)
                 {
-                    Line newLineForExistingCell = new Line(cuttingLinesList[i].pointB, intersectionPointsList[i]);
-                    cell.edges.Add(newLineForExistingCell);
+					mainCell.edges.Add(newLineForExistingCell);
+
+					// Remove the current edge from the neighbor cell
+            		mainCell.edges.Remove(cuttingLinesList[i]);
+
+					mainCell.pointsToRemove.Add(cuttingLinesList[i].pointA);
+
+
+					for (int j = 0; j < mainCell.neighbors.Count; ++j)
+					{
+						for (int k = 0; k < mainCell.neighbors [j].edges.Count; ++k)
+						{
+							if (mainCell.neighbors [j].edges [k].EqualsOtherLine (cuttingLinesList [i], false)  && !mainCell.neighbors[j].edges[k].EqualsOtherLine(newLineForExistingCell, false))
+							{
+								isLinePartOfNeighbors = true;
+
+								mainCell.neighbors[j].edges.Remove(mainCell.neighbors[j].edges[k]);
+								mainCell.neighbors[j].edges.Add(newLineForExistingCell);
+
+								if (!mainCell.neighbors[j].pointsToRemove.Contains(cuttingLinesList[i].pointA))
+									mainCell.neighbors[j].pointsToRemove.Add(cuttingLinesList[i].pointA);
+
+								break;
+							}
+						}
+
+						if (isLinePartOfNeighbors)
+							break;
+					}
+
+					if (!cuttingLinesList[i].pointAEquals(intersectionPointsList[i]) && !isLinePartOfNeighbors)
+	                {
+						Line newLineForNewCell = new Line(cuttingLinesList[i].pointA, intersectionPointsList[i]);
+	                    newCell.edges.Add(newLineForNewCell);
+	                }
                 }
 
-                existingCellPointsLinkedToLinesToRemove.Add(cuttingLinesList[i].pointA);
 
-                if (!cuttingLinesList[i].pointAEquals(intersectionPointsList[i]))
-                {
-                    Line newLineForNewCell = new Line(cuttingLinesList[i].pointA, intersectionPointsList[i]);
-                    newCell.edges.Add(newLineForNewCell);
-                }
             }
 
-            // Remove the current edge from the main cell
-            cell.edges.Remove(cuttingLinesList[i]);
+
         }
 
+		/**************************************************/
+        /*	Remove the exceding lines from the main cell  */
+        /**************************************************/
+
         // Go through all the edges from the main cell to check if there arent anymore to remove
-        for (int i = 0; i < existingCellPointsLinkedToLinesToRemove.Count; ++i)
+		for (int i = 0; i < mainCell.pointsToRemove.Count; ++i)
         {
             bool newLineFound = false;
 
-            // If one of the point from 'existingCellPointsLinkedToLinesToRemove' is found, it means there was an extra edge to remove
-            // from the main cell and to add to the new cell
-            for (int j = 0; j < cell.edges.Count; ++j)
+			// If one of the point from 'pointsToRemove' is found, it means there was an extra edge to remove
+            // from the neighbor cell and to add to the new cell
+            for (int j = 0; j < mainCell.edges.Count; ++j)
             {
-                if (cell.edges[j].pointAEquals(existingCellPointsLinkedToLinesToRemove[i]))
-                {
-                    // Add the cuurent edge to the new cell
-                    newCell.edges.Add(cell.edges[j]);
-                    // Add the other point of the current edge as a point to check
-                    existingCellPointsLinkedToLinesToRemove.Add(cell.edges[j].pointB);
+            	if (!mainCell.edges[j].EqualsOtherLine(perpendicularLine, false) &&
+					!perpendicularLine.pointAEquals(mainCell.pointsToRemove[i]) &&
+					!perpendicularLine.pointBEquals(mainCell.pointsToRemove[i]))
+            	{
+					if (mainCell.edges[j].pointAEquals(mainCell.pointsToRemove[i]))
+	                {
+	                    // Add the cuurent edge to the new cell
+						int indexOfEdge = newCell.HasEdge(mainCell.edges[j], false);
 
-                    // Remove the current edge from the main cell
-                    cell.edges.Remove(cell.edges[j]);
-                    newLineFound = true;
-                    
-                    break;
-                }
-                else if (cell.edges[j].pointBEquals(existingCellPointsLinkedToLinesToRemove[i]))
-                {
-                    newCell.edges.Add(cell.edges[j]);
-                    existingCellPointsLinkedToLinesToRemove.Add(cell.edges[j].pointA);
+						//if (!mainCell.edges[j].pointBEquals(perpendicularLine.pointA) &&
+						//	!mainCell.edges[j].pointBEquals(perpendicularLine.pointB))
+						//{
+							if (indexOfEdge.Equals(-1))
+								newCell.edges.Add(mainCell.edges[j]);
+							else
+								newCell.edges.RemoveAt(indexOfEdge);
+						//}
 
-                    cell.edges.Remove(cell.edges[j]);
-                    newLineFound = true;
-                    
-                    break;
-                }
+
+	                    // Add the other point of the current edge as a point to check
+						mainCell.pointsToRemove.Add(mainCell.edges[j].pointB);
+
+	                    // Remove the current edge from the neighbor cell
+	                    mainCell.edges.Remove(mainCell.edges[j]);
+	                    newLineFound = true;
+
+	                    break;
+	                }
+					else if (mainCell.edges[j].pointBEquals(mainCell.pointsToRemove[i]))
+	                {
+						int indexOfEdge = newCell.HasEdge(mainCell.edges[j], false);
+
+						//if (!mainCell.edges[j].pointAEquals(perpendicularLine.pointA) &&
+						//	!mainCell.edges[j].pointAEquals(perpendicularLine.pointB))
+						//{
+							if (indexOfEdge.Equals(-1))
+								newCell.edges.Add(mainCell.edges[j]);
+							else
+								newCell.edges.RemoveAt(indexOfEdge);
+						//}
+
+	                    //newCell.edges.Add(mainCell.edges[j]);
+						mainCell.pointsToRemove.Add(mainCell.edges[j].pointA);
+
+	                    mainCell.edges.Remove(mainCell.edges[j]);
+	                    newLineFound = true;
+
+	                    break;
+	                }
+
+            	}
+				
             }
 
             // If no new line has been found, it means all the extra edges has been removed, so there is no need to keep checking
@@ -676,57 +850,65 @@ public class Voronoi2DScript : MonoBehaviour {
                 break;
         }
 
+		mainCell.pointsToRemove.Clear();
+		
         // Add the new cell as a neighbors of the main cell and vice versa
-        cell.neighbors.Add(newCell);
-        newCell.neighbors.Add(cell);
+        mainCell.neighbors.Add(newCell);
+        newCell.neighbors.Add(mainCell);
 
-        List<Cell> listOfNeighborsToNotCheck = new List<Cell>();
+        newCell.MergeAlignedEdges();
 
-        for (int i = 0; i < cell.neighbors.Count; ++i)
+		/************************************************/
+        /*	Check the neighbor cells of the main cell	*/
+        /************************************************/
+
+        for (int i = 0; i < mainCell.neighbors.Count; ++i)
         {
-            if (!cell.neighbors[i].Equals(newCell) && !newCell.neighbors.Contains(cell.neighbors[i]))
+            if (!newCell.neighbors.Contains(mainCell.neighbors[i]) && !mainCell.neighbors[i].Equals(newCell))
             {
-                for (int j = 0; j < cell.neighbors[i].edges.Count; ++j)
+                for (int j = 0; j < mainCell.neighbors[i].edges.Count; ++j)
                 {
-                    if ((cell.neighbors[i].edges[j].IsPointOnSegment(perpendicularLine.pointA) || cell.neighbors[i].edges[j].IsPointOnSegment(perpendicularLine.pointB)) &&
-                        (!cell.neighbors[i].edges[j].pointAEquals(perpendicularLine.pointA, 3) && !cell.neighbors[i].edges[j].pointAEquals(perpendicularLine.pointB, 3) &&
-                        !cell.neighbors[i].edges[j].pointBEquals(perpendicularLine.pointA, 3) && !cell.neighbors[i].edges[j].pointBEquals(perpendicularLine.pointB, 3)))
-                    //if (cell.neighbors[i].edges[j].IsPointOnSegment(perpendicularLine.pointA) || cell.neighbors[i].edges[j].IsPointOnSegment(perpendicularLine.pointB))
+                    //if ((mainCell.neighbors[i].edges[j].IsPointOnSegment(perpendicularLine.pointA) || mainCell.neighbors[i].edges[j].IsPointOnSegment(perpendicularLine.pointB)) &&
+                    //    (!mainCell.neighbors[i].edges[j].pointAEquals(perpendicularLine.pointA, 3) && !mainCell.neighbors[i].edges[j].pointAEquals(perpendicularLine.pointB, 3) &&
+                    //    !mainCell.neighbors[i].edges[j].pointBEquals(perpendicularLine.pointA, 3) && !mainCell.neighbors[i].edges[j].pointBEquals(perpendicularLine.pointB, 3)))
+					if (mainCell.neighbors[i].edges[j].IsPointOnSegment(perpendicularLine.pointA) || mainCell.neighbors[i].edges[j].IsPointOnSegment(perpendicularLine.pointB))
                     {
-                        SplitNeighbors(cell.neighbors[i], newCell);
+						SplitCell(mainCell.neighbors[i], newCell);
 
-                        if (!cell.IsStillNeighborWithCell(cell.neighbors[i]))
-                        {
-                            //cell.neighbors[i].neighbors.Remove(cell);
-                            //cell.neighbors.Remove(cell.neighbors[i]);
-                        }
-                        listOfNeighborsToNotCheck.Add(cell.neighbors[i]);
                         break;
                     }
                 }
             }
-            
+
         }
 
-        listOfNeighborsToNotCheck.Add(newCell);
+    }
 
-        
+    void SplitMainCell(Cell cell, Vector3 newSeed)
+    {
+        // Create the new cell
+        Cell newCell = new Cell(newSeed);
+
+        SplitCell(cell, newCell);
+
         for (int k = 0; k < newCell.edges.Count; ++k)
         {
             for (int i = 0; i < cell.neighbors.Count; ++i)
             {
-                if (!listOfNeighborsToNotCheck.Contains(cell.neighbors[i]) && !newCell.neighbors.Contains(cell.neighbors[i]))
+                if (!newCell.neighbors.Contains(cell.neighbors[i]) && !cell.neighbors[i].Equals(newCell))
                 {
                     for (int j = 0; j < cell.neighbors[i].edges.Count; ++j)
                     {
                         if (newCell.edges[k].EqualsOtherLine(cell.neighbors[i].edges[j], false))
                         {
-                            SplitNeighbors(cell.neighbors[i], newCell);
+							
+							SplitCell(cell.neighbors[i], newCell);
                             cell.neighbors[i].neighbors.Remove(cell);
                             cell.neighbors.Remove(cell.neighbors[i]);
                             --i;
                             --k;
                             break;
+                            
                         }
                     }
                 }
@@ -740,190 +922,10 @@ public class Voronoi2DScript : MonoBehaviour {
         //cell.RemoveOffNeighbors();
         //newCell.RemoveOrphanEdges();
         // Add the new cell the global list of cells
+
         listOfCells.Add(newCell);
 
         
-    }
-
-    void SplitNeighbors(Cell neighborCell, Cell newCell)
-    {
-        // Get the line between the germs
-        Line germsLine = new Line(neighborCell.germ, newCell.germ);
-        
-        // Create the perpendicular line on the line between the germs
-        Vector3 perpendicularVector = germsLine.Get2DPerpendicularVector();
-        Vector3 startingPerpendicularPoint = germsLine.GetMiddle();
-        Vector3 endingPerpendicularPoint = perpendicularVector * 2 + startingPerpendicularPoint;
-
-        Line perpendicularLine = new Line(startingPerpendicularPoint, endingPerpendicularPoint);
-
-        // Create the lists which will be used to hold the edges from the neighbor cell cut by the perpendicular line
-        // And the intersection points
-        List<Line> cuttingLinesList = new List<Line>();
-        List<Vector3> intersectionPointsList = new List<Vector3>();
-
-        // Go through all the edges of the cell to find out which ones are being cut by the perpendicular line
-        for (int i = 0; i < neighborCell.edges.Count; ++i)
-        {
-            // Check the lines are crossing
-            if (neighborCell.edges[i].IsCrossingOtherLine(perpendicularLine))
-            {
-                Vector3 intersectionPoint = neighborCell.edges[i].GetIntersectionPointWithOtherLine(perpendicularLine, false);
-
-                // Check the intersection point is on the segment (so the cut is actually inbetween the boundaries of the segment, not just the line)
-                if (neighborCell.edges[i].IsPointOnSegment(intersectionPoint))
-                {
-                    // Save the edge cut by the perpendicular line
-                    cuttingLinesList.Add(neighborCell.edges[i]);
-                    // Save the intersection point
-                    intersectionPointsList.Add(intersectionPoint);
-                }
-
-            }
-        }
-
-        if (intersectionPointsList.Count != 2)
-            return;
-
-        // The perpendicular line is now defined by the intersection points
-        perpendicularLine.EditPointA(intersectionPointsList[0]);
-        perpendicularLine.EditPointB(intersectionPointsList[1]);
-
-        // The perpendicular line is now one of the edges of the main and new cell
-        neighborCell.edges.Add(perpendicularLine);
-        newCell.edges.Add(perpendicularLine);
-
-        // Create a list that will hold the points of the edges to remove
-        // A-------\-----B
-        //  |       \   |
-        //  |        \  |
-        // If A will still be part of the main cell, B will be saved because it might be linked to some other edges to remove
-
-        List<Vector3> existingCellPointsLinkedToLinesToRemove = new List<Vector3>();
-
-        // Go through the edges cut by the perpendicular line to split them into 2 and add them to the proper cell
-        for (int i = 0; i < cuttingLinesList.Count; ++i)
-        {
-            // If the pointA from the edge being cut is closer the neighbor cell's germ than the new cell, then it means
-            // that the line between pointA and the intersection point should be part of the neighbor cell
-            if (Vector3.Distance(cuttingLinesList[i].pointA, neighborCell.germ) < Vector3.Distance(cuttingLinesList[i].pointA, newCell.germ))
-            {
-                // Add the new line to the neighbor cell
-                if (!cuttingLinesList[i].pointAEquals(intersectionPointsList[i]))
-                {
-                    Line newLineForExistingCell = new Line(cuttingLinesList[i].pointA, intersectionPointsList[i]);
-                    neighborCell.edges.Add(newLineForExistingCell);
-                }
-
-                // Add pointB as a point potentially linked to some other edges to remove
-                existingCellPointsLinkedToLinesToRemove.Add(cuttingLinesList[i].pointB);
-
-                // Add the rest of the line the new cell
-                if (!cuttingLinesList[i].pointBEquals(intersectionPointsList[i]))
-                {
-                    Line newLineForNewCell = new Line(cuttingLinesList[i].pointB, intersectionPointsList[i]);
-                    newCell.edges.Add(newLineForNewCell);
-                }
-
-            }
-            else
-            {
-                if (!cuttingLinesList[i].pointBEquals(intersectionPointsList[i]))
-                {
-                    Line newLineForExistingCell = new Line(cuttingLinesList[i].pointB, intersectionPointsList[i]);
-                    neighborCell.edges.Add(newLineForExistingCell);
-                }
-
-                existingCellPointsLinkedToLinesToRemove.Add(cuttingLinesList[i].pointA);
-
-                if (!cuttingLinesList[i].pointAEquals(intersectionPointsList[i]))
-                {
-                    Line newLineForNewCell = new Line(cuttingLinesList[i].pointA, intersectionPointsList[i]);
-                    newCell.edges.Add(newLineForNewCell);
-                }
-                
-            }
-
-            // Remove the current edge from the neighbor cell
-            neighborCell.edges.Remove(cuttingLinesList[i]);
-        }
-
-        // Go through all the edges from the neighbor cell to check if there arent anymore to remove
-        for (int i = 0; i < existingCellPointsLinkedToLinesToRemove.Count; ++i)
-        {
-            bool newLineFound = false;
-
-            // If one of the point from 'existingCellPointsLinkedToLinesToRemove' is found, it means there was an extra edge to remove
-            // from the neighbor cell and to add to the new cell
-            for (int j = 0; j < neighborCell.edges.Count; ++j)
-            {
-                if (neighborCell.edges[j].pointAEquals(existingCellPointsLinkedToLinesToRemove[i]))
-                {
-                    // Add the cuurent edge to the new cell
-                    newCell.edges.Add(neighborCell.edges[j]);
-                    // Add the other point of the current edge as a point to check
-                    existingCellPointsLinkedToLinesToRemove.Add(neighborCell.edges[j].pointB);
-
-                    // Remove the current edge from the neighbor cell
-                    neighborCell.edges.Remove(neighborCell.edges[j]);
-                    newLineFound = true;
-
-                    break;
-                }
-                else if (neighborCell.edges[j].pointBEquals(existingCellPointsLinkedToLinesToRemove[i]))
-                {
-                    newCell.edges.Add(neighborCell.edges[j]);
-                    existingCellPointsLinkedToLinesToRemove.Add(neighborCell.edges[j].pointA);
-
-                    neighborCell.edges.Remove(neighborCell.edges[j]);
-                    newLineFound = true;
-
-                    break;
-                }
-            }
-
-            // If no new line has been found, it means all the extra edges has been removed, so there is no need to keep checking
-            if (!newLineFound)
-                break;
-        }
-
-        // Add the new cell as a neighbors of the neighbor cell and vice versa
-        neighborCell.neighbors.Add(newCell);
-        newCell.neighbors.Add(neighborCell);
-
-        newCell.RemoveDuplicateEdges(false);
-        //newCell.RemoveEdgesAsPoint();
-        newCell.MergeAlignedEdges();
-        
-
-
-        for (int i = 0; i < neighborCell.neighbors.Count; ++i)
-        {
-            if (!newCell.neighbors.Contains(neighborCell.neighbors[i]) && !neighborCell.neighbors[i].Equals(newCell))
-            {
-                for (int j = 0; j < neighborCell.neighbors[i].edges.Count; ++j)
-                {
-                    if ((neighborCell.neighbors[i].edges[j].IsPointOnSegment(perpendicularLine.pointA) || neighborCell.neighbors[i].edges[j].IsPointOnSegment(perpendicularLine.pointB)) &&
-                        (!neighborCell.neighbors[i].edges[j].pointAEquals(perpendicularLine.pointA, 3) && !neighborCell.neighbors[i].edges[j].pointAEquals(perpendicularLine.pointB, 3) &&
-                        !neighborCell.neighbors[i].edges[j].pointBEquals(perpendicularLine.pointA, 3) && !neighborCell.neighbors[i].edges[j].pointBEquals(perpendicularLine.pointB, 3)))
-                    {
-                        SplitNeighbors(neighborCell.neighbors[i], newCell);
-
-                        if (!neighborCell.IsStillNeighborWithCell(neighborCell.neighbors[i]))
-                        {
-                            //neighborCell.neighbors[i].neighbors.Remove(neighborCell);
-                            //neighborCell.neighbors.Remove(neighborCell.neighbors[i]);
-                        }
-                        break;
-                    }
-                }
-            }
-
-        }
-
-        
-
-        //neighborCell.RemoveOffNeighbors();
     }
 
     struct Boundaries
@@ -956,13 +958,13 @@ public class Voronoi2DScript : MonoBehaviour {
 
 	}
 
-    IEnumerator AddSomeGerms()
+    IEnumerator AddSomeSeeds()
     {
         List<Vector3> listOfPoints = generateListOfPoints(boundaries.bottomLeft, boundaries.topRight);
         
         for (int i = 0; i < listOfPoints.Count; ++i)
         {
-            AddNewGerm(listOfPoints[i]);
+            AddNewSeed(listOfPoints[i]);
             yield return new WaitForSeconds(.01f);
         }
 
@@ -975,8 +977,8 @@ public class Voronoi2DScript : MonoBehaviour {
         {
             for (int i = 0; i < listOfCells.Count; ++i)
             {
-                //Gizmos.DrawSphere(listOfCells[i].germ, 0.1f);
-                Gizmos.DrawWireSphere(listOfCells[i].germ, 0.1f);
+                //Gizmos.DrawSphere(listOfCells[i].seed, 0.1f);
+                Gizmos.DrawWireSphere(listOfCells[i].seed, 0.1f);
                 for (int j = 0; j < listOfCells[i].edges.Count; ++j)
                 {
                     Debug.DrawLine(listOfCells[i].edges[j].pointA, listOfCells[i].edges[j].pointB, Color.green);
