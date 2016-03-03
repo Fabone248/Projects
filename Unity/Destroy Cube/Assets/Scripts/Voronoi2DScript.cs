@@ -567,17 +567,21 @@ public class Voronoi2DScript : MonoBehaviour {
         return listOfLines;
     }
 
-    void SplitCell (Cell mainCell, Cell newCell)
+    void SplitCell(Cell mainCell, Cell newCell, Vector3 startingPerpendicularPoint, Line edgeCut)
     {
 		// Get the line between the seeds
         Line seedsLine = new Line(mainCell.seed, newCell.seed);
-        
+
         // Create the perpendicular line on the line between the seeds
         Vector3 perpendicularVector = seedsLine.Get2DPerpendicularVector();
-        Vector3 startingPerpendicularPoint = seedsLine.GetMiddle();
+
+        if (float.IsNaN(startingPerpendicularPoint.x))
+            startingPerpendicularPoint = seedsLine.GetMiddle();
+
         Vector3 endingPerpendicularPoint = perpendicularVector * 2 + startingPerpendicularPoint;
 
         Line perpendicularLine = new Line(startingPerpendicularPoint, endingPerpendicularPoint);
+        
 
         /****************************************************************/
         /*	Get the perpendicular line of the line between the 2 seeds	*/
@@ -592,7 +596,7 @@ public class Voronoi2DScript : MonoBehaviour {
         for (int i = 0; i < mainCell.edges.Count; ++i)
         {
             // Check the lines are crossing
-            if (mainCell.edges[i].IsCrossingOtherLine(perpendicularLine))
+            if (!mainCell.edges[i].EqualsOtherLine(edgeCut, true) && mainCell.edges[i].IsCrossingOtherLine(perpendicularLine))
             {
                 Vector3 intersectionPoint = mainCell.edges[i].GetIntersectionPointWithOtherLine(perpendicularLine, false);
 
